@@ -22,6 +22,32 @@ try {
 
     $changes = git diff --name-status HEAD upstream/main 2>$null
 
+    # Sanity check: INDEX.md vs actual file count drift detection
+    $depts = @('academic','design','engineering','finance','marketing','paid-media','product','project-management','sales','specialized','strategy','support','testing')
+    $actualCount = 0
+    foreach ($d in $depts) {
+        if (Test-Path $d) {
+            $actualCount += (Get-ChildItem -Path $d -Recurse -Filter "*.md" | Measure-Object).Count
+        }
+    }
+    $indexEntries = 0
+    if (Test-Path "INDEX.md") {
+        $indexEntries = (Select-String -Path "INDEX.md" -Pattern "^- ``[a-z0-9-]+``" | Measure-Object).Count
+    }
+
+    Write-Host "[SANITY] Drift check:" -ForegroundColor Cyan
+    Write-Host "   Actual .md files (13 depts incl. strategy subs): $actualCount"
+    Write-Host "   INDEX.md entries:                                  $indexEntries"
+    if ($actualCount -ne $indexEntries) {
+        $diff = $actualCount - $indexEntries
+        Write-Host "   [DRIFT] $diff files differ from INDEX." -ForegroundColor Yellow
+        Write-Host "   Note: 16 strategy/{coordination,playbooks,runbooks} 는 INDEX 의 Strategy Resources 섹션 별도 카운트."
+        Write-Host "   Expected: actual = INDEX + strategy_sub_already_counted. Run regeneration if real drift."
+    } else {
+        Write-Host "   [OK] No drift detected." -ForegroundColor Green
+    }
+    Write-Host ""
+
     if (-not $changes) {
         Write-Host "[OK] Senior library is up to date (no upstream changes)" -ForegroundColor Green
         exit 0
