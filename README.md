@@ -8,7 +8,7 @@
 - **Fork**: [somerset-spec/osc-senior-library](https://github.com/somerset-spec/osc-senior-library) — OSC 도메인 변형 누적
 - **원본 README**: [`README-upstream.md`](./README-upstream.md) 에 보존
 - **라이선스**: [`LICENSE`](./LICENSE) (MIT 원본 그대로)
-- **OSC 변형 작업**: somerset-spec (siiwle37@gmail.com)
+- **OSC 변형 작업**: [@somerset-spec](https://github.com/somerset-spec)
 
 ## 무엇이 다른가 (upstream 대비)
 

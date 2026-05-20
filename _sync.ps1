@@ -53,6 +53,54 @@ try {
     }
     Write-Host ""
 
+    # Cross-ref check: _osc-mapping.md senior labels must exist in INDEX.md
+    if ((Test-Path "_osc-mapping.md") -and (Test-Path "INDEX.md")) {
+        $modules = @('blog','shortform','proposals','quotes','contracts','briefs','clients','keyword-seo','deal-pipeline','cafe-viral','sns-publish','link-in-bio','tax-invoice','commerce-launch','weekly-mgmt','capcut-auto')
+        $mappingContent = Get-Content "_osc-mapping.md" -Raw
+        $mappingRefs = [regex]::Matches($mappingContent, '`([a-z][a-z0-9-]+)`') |
+            ForEach-Object { $_.Groups[1].Value } |
+            Sort-Object -Unique |
+            Where-Object { $_ -notin $modules -and -not ($_ -match '^docs') }
+
+        $indexContent = Get-Content "INDEX.md" -Raw
+        $indexLabels = [regex]::Matches($indexContent, '(?m)^- `([A-Za-z0-9-]+)`') |
+            ForEach-Object { $_.Groups[1].Value }
+
+        # External global skills mentioned in "우리 글로벌 21 agents 와의 관계" section — not seniors
+        $externalSkills = @('commit-push-pr','team-orchestrator','ux-designer','frontend-design','code-review','image-prompt','video-prompt','blueprint','session-wrap','verification-engine','vibe-cofounder','architect','code-reviewer','planner','tdd-guide','security-reviewer')
+
+        $candidates = @($mappingRefs | Where-Object { $_ -notin $indexLabels -and $_ -notin $externalSkills })
+
+        # Suffix match resolve: short alias (e.g. "backend-architect" -> "engineering-backend-architect")
+        $resolved = @()
+        $reallyStale = @()
+        foreach ($c in $candidates) {
+            $suffixMatch = @($indexLabels | Where-Object { $_ -match "-$([regex]::Escape($c))$" })
+            if ($suffixMatch.Count -gt 0) {
+                $resolved += "$c -> $($suffixMatch -join ',')"
+            } else {
+                $reallyStale += $c
+            }
+        }
+
+        Write-Host "[CROSS-REF] _osc-mapping.md -> INDEX.md:" -ForegroundColor Cyan
+        Write-Host "   _osc-mapping refs: $($mappingRefs.Count) (excluding modules)"
+        Write-Host "   INDEX labels:      $($indexLabels.Count)"
+        if ($resolved.Count -gt 0) {
+            Write-Host "   [ALIAS] $($resolved.Count) short aliases auto-resolved to full kebab:" -ForegroundColor DarkGray
+            $resolved | Select-Object -First 5 | ForEach-Object { Write-Host "     ~ $_" }
+        }
+        if ($reallyStale.Count -gt 0) {
+            Write-Host "   [STALE] $($reallyStale.Count) refs in _osc-mapping.md not in INDEX:" -ForegroundColor Yellow
+            $reallyStale | Select-Object -First 10 | ForEach-Object { Write-Host "     - $_" }
+            if ($reallyStale.Count -gt 10) { Write-Host "     ... ($($reallyStale.Count - 10) more)" }
+            Write-Host "   Action: update _osc-mapping.md to match INDEX, or add missing seniors to INDEX."
+        } else {
+            Write-Host "   [OK] All cross-refs valid (after alias/external resolution)." -ForegroundColor Green
+        }
+        Write-Host ""
+    }
+
     if (-not $changes) {
         Write-Host "[OK] Senior library is up to date (no upstream changes)" -ForegroundColor Green
         exit 0
