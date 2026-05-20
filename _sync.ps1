@@ -18,7 +18,11 @@ try {
     }
 
     Write-Host "[INFO] Fetching upstream..." -ForegroundColor Cyan
-    git fetch upstream main 2>&1 | Out-Null
+    # PowerShell converts git's normal stderr (e.g. "From https://...") to errors.
+    # Temporarily suppress with SilentlyContinue + redirect all streams.
+    $ErrorActionPreference = "SilentlyContinue"
+    git fetch upstream main *> $null
+    $ErrorActionPreference = "Stop"
 
     $changes = git diff --name-status HEAD upstream/main 2>$null
 
@@ -32,7 +36,8 @@ try {
     }
     $indexEntries = 0
     if (Test-Path "INDEX.md") {
-        $indexEntries = (Select-String -Path "INDEX.md" -Pattern "^- ``[a-z0-9-]+``" | Measure-Object).Count
+        # case-insensitive — Strategy Meta has EXECUTIVE-BRIEF / QUICKSTART uppercase
+        $indexEntries = (Select-String -Path "INDEX.md" -Pattern "^- ``[A-Za-z0-9-]+``" | Measure-Object).Count
     }
 
     Write-Host "[SANITY] Drift check:" -ForegroundColor Cyan
